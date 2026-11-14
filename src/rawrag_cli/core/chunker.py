@@ -12,6 +12,8 @@ from .config import chunk_overlap as DEFAULT_CHUNK_OVERLAP
 
 
 def has_readable_text(text):
+    """ check weather the extracted text contains redable content"""
+    
     tokens = text.split()
     if not tokens:
         return False
@@ -23,6 +25,7 @@ def has_readable_text(text):
 
 
 def _get_ocr_engine():
+    """ initialize ocr engine"""
     global _ocr_engine
     if _ocr_engine is None:
         with _ocr_engine_lock:
