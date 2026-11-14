@@ -12,6 +12,15 @@ from .config import chunk_overlap as DEFAULT_CHUNK_OVERLAP
 
 
 def has_readable_text(text):
+    """
+    Check whether extracted PDF text contains readable content.
+
+    Args:
+        text (str): Text extracted from the PDF page.
+
+    Returns:
+        bool: True if the text is considered readable, otherwise False.
+    """
     tokens = text.split()
     if not tokens:
         return False
@@ -23,6 +32,7 @@ def has_readable_text(text):
 
 
 def _get_ocr_engine():
+    """ initialize  the OCR engine"""
     global _ocr_engine
     if _ocr_engine is None:
         with _ocr_engine_lock:
