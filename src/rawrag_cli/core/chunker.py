@@ -66,7 +66,7 @@ def _ocr_page(pdf_document, page_number, engine, scale):
         scale:rendering scale from the pdf page
 
     Returns:
-            texts exctracted from the pdf pages
+        texts exctracted from the pdf pages
 
     """
     
@@ -100,7 +100,7 @@ def extract_pages_from_pdf(pdf_path):
         pdf_path: location of the pdf file
 
     Returns:
-             path=[(int,str)]: list named pages contains texts and their corresponding page number
+        path=[(int,str)]: list named pages contains texts and their corresponding page number
 
     """
     reader = PyPDF2.PdfReader(pdf_path)
