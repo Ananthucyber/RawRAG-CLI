@@ -56,6 +56,20 @@ def _get_ocr_engine():
 
 
 def _ocr_page(pdf_document, page_number, engine, scale):
+    """
+    Extract text from pdf page using OCR engine
+
+    Args:
+        pdf_document:The source doucument
+        page_number(int): the pages needed to br processed range from a to b
+        engine: calling the ocr engine
+        scale:rendering scale from the pdf page
+
+    Returns:
+            texts exctracted from the pdf pages
+            
+    """
+    
     with _pdfium_lock:
         page = pdf_document[page_number - 1]
         bitmap = None
