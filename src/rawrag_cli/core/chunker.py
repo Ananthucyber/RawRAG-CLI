@@ -67,7 +67,7 @@ def _ocr_page(pdf_document, page_number, engine, scale):
 
     Returns:
             texts exctracted from the pdf pages
-            
+
     """
     
     with _pdfium_lock:
@@ -91,6 +91,18 @@ def _ocr_page(pdf_document, page_number, engine, scale):
 
 
 def extract_pages_from_pdf(pdf_path):
+    """
+    Extract text from the every pages of the pdf document
+
+    Attempta normal extraction first.If page does't contain redable text,OCR is used
+
+    Args:
+        pdf_path: location of the pdf file
+
+    Returns:
+             path=[(int,str)]: list named pages contains texts and their corresponding page number
+
+    """
     reader = PyPDF2.PdfReader(pdf_path)
     pdfium_document = None
     engine = None
@@ -117,10 +129,28 @@ def extract_pages_from_pdf(pdf_path):
 
 
 def extract_text_from_pdf(pdf_path):
+    """Extract and combine anll the extracted text from the pdf
+    
+        Args:
+            pdf_path: the location of th pdf file
+
+        returns:
+            combined text extracted from the entire pdf
+    """
     return " ".join(text for _, text in extract_pages_from_pdf(pdf_path))
 
 
 def chunk_text(text, chunk_size=DEFAULT_CHUNK_SIZE, overlap=DEFAULT_CHUNK_OVERLAP):
+    """
+    Divide text into smaller cunks based on the size
+
+    Args:
+        text(str): the input text need to convert into chunks
+        chunk_size:maximum six of the chunks
+        overlap:no of words shared between chunks
+    Returns:
+        list[str]: returns a list with generated chunks
+    """
     words = text.split()
     chunks = []
 
