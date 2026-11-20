@@ -9,8 +9,9 @@ class VectorMath:
         self.vector_ids = {}
         # Load existing matrix and IDs from disk if they exist, otherwise start fresh
         if os.path.exists(self.index_path):
-            self.matrix = np.load(self.index_path)
+            self.matrix = np.atleast_2d(np.load(self.index_path))
             self.load_ids()
+            self.validate_index()
         else:
             self.matrix = None
 
@@ -19,18 +20,34 @@ class VectorMath:
         if os.path.exists(self.id_path):
             with open(self.id_path, 'r') as f:
                 self.vector_ids = json.load(f)
+        else:
+            raise RuntimeError(
+                f"{self.index_path} exists without {self.id_path}; delete both index files before re-indexing."
+            )
+
+    def validate_index(self):
+        """Ensure the vector matrix and ID mapping are synchronized."""
+        if self.matrix is None:
+            return
+        if len(self.vector_ids) != self.matrix.shape[0]:
+            raise RuntimeError(
+                "Vector index is out of sync: "
+                f"{len(self.vector_ids)} vector IDs but matrix has {self.matrix.shape[0]} rows."
+            )
 
     def add_vector(self, vector, vector_id):
+        row_index = 0 if self.matrix is None else self.matrix.shape[0]
         if self.matrix is None:
             self.matrix = np.atleast_2d(vector)
         else:
             self.matrix = np.vstack([self.matrix, np.atleast_2d(vector)])
-        self.vector_ids[str(len(self.vector_ids))] = vector_id  # Store the ID with the current index
+        self.vector_ids[str(row_index)] = vector_id
         return self.matrix.shape
 
     def search(self, query_vector, top_k=3):
         if self.matrix is None:
             return []
+        self.validate_index()
         
         q = np.array(query_vector)
         dot = np.dot(self.matrix, q)
