@@ -20,6 +20,14 @@ def insert_chunk(filepath: str, text: str, path=DB_PATH):
         cursor = conn.cursor()
         cursor.execute('INSERT INTO documents (filepath, chunk_text) VALUES (?, ?)', (filepath, text))
         conn.commit()
+        return cursor.lastrowid
+
+def count_chunks(db_path=DB_PATH):
+    """Returns the number of chunks stored in the database."""
+    with sqlite3.connect(db_path) as conn:
+        cursor = conn.cursor()
+        cursor.execute('SELECT COUNT(*) FROM documents')
+        return cursor.fetchone()[0]
 
 def get_chunks(id_list, db_path=DB_PATH):
     """Retrieves chunks by their IDs and formats them with their file paths."""

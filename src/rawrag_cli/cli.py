@@ -10,7 +10,7 @@ import pathlib
 import requests
 
 from rawrag_cli.core.chunker import chunk_text
-from rawrag_cli.core.database import get_chunks, insert_chunk
+from rawrag_cli.core.database import count_chunks, get_chunks, insert_chunk
 from rawrag_cli.core.vector import VectorMath
 from rawrag_cli.core.config import chunk_size, chunk_overlap, OLLAMA_URL, DB_PATH
 from rawrag_cli.core.embeddings import get_embedding
@@ -27,9 +27,15 @@ def index(directory: str = typer.Argument(".", help="Path to database")):
     print_header()
     console.print(f"Indexing files in directory: [cyan]{directory}[/cyan]")
 
+    # Start with a clean index so re-indexing does not duplicate database or vector rows.
+    for index_file in (DB_PATH, "rawrag_vectors.npy", "vector_ids.json"):
+        if os.path.exists(index_file):
+            os.remove(index_file)
+
     # Initializing the database table BEFORE the loop (debugging)
     from .core.database import initialize_database
     initialize_database()  
+    vector_store = VectorMath()
 
     with console.status("[bold yellow]Chunking and embedding files (this might take a minute)...[/bold yellow]", spinner="bouncingBar"):
         filepaths = list(pathlib.Path(directory).rglob("*.py"))
@@ -38,8 +44,6 @@ def index(directory: str = typer.Argument(".", help="Path to database")):
             console.print("[bold red]No .py files found in the specified directory.[/bold red]")
             raise typer.Exit(code=1)
 
-        vector_store = VectorMath()
-
         for path in filepaths:
             # Temporarily removed try/except to expose the exact error line
             text = path.read_text(encoding="utf-8")
@@ -47,8 +51,8 @@ def index(directory: str = typer.Argument(".", help="Path to database")):
 
             for chunk in chunks:
                 vector = get_embedding(chunk)
-                vector_store.add_vector(vector)
-                insert_chunk(str(path), chunk)
+                chunk_id = insert_chunk(str(path), chunk)
+                vector_store.add_vector(vector, chunk_id)
 
         vector_store.save_index()
 
@@ -59,14 +63,25 @@ def query(question: str):
     print_header()
 
     with console.status("[bold yellow]Processing your query...[/bold yellow]", spinner="bouncingBar"):
-        query_vector = get_embedding(question)
-        vector_store = VectorMath()
+        try:
+            vector_store = VectorMath()
+        except (RuntimeError, ValueError) as e:
+            console.print(
+                f"[bold red]Index Error:[/bold red] {e} "
+                "Run [bold cyan]rawrag index[/bold cyan] to rebuild."
+            )
+            raise typer.Exit(code=1)
 
-        top_indices = vector_store.search(query_vector, top_k=3)
-        if not top_indices:
+        query_vector = get_embedding(question)
+
+        if vector_store.matrix is None or count_chunks() != vector_store.matrix.shape[0]:
+            console.print("[bold red]The SQLite and vector indexes are out of sync. Run [bold cyan]rawrag index[/bold cyan] again.[/bold red]")
+            raise typer.Exit(code=1)
+
+        chunk_ids = vector_store.search(query_vector, top_k=3)
+        if not chunk_ids:
             console.print("[bold red]No relevant chunks found for the query. Run [bold cyan]index[/bold cyan] first.[/bold red]")
             raise typer.Exit(code=1)
-        chunk_ids = [int(index) + 1 for index in top_indices]
         chunks = get_chunks(chunk_ids)
         if not chunks:
             console.print("[bold red]No matching chunks found in the database. Run [bold cyan]index[/bold cyan] first.[/bold red]")
@@ -99,6 +114,16 @@ def query(question: str):
 
         except requests.exceptions.ConnectionError:
             console.print("[bold red]Error:[/bold red] Could not connect to Ollama. Make sure Ollama is running in the background (`ollama serve`).")
+            raise typer.Exit(code=1)
+        except requests.exceptions.HTTPError as e:
+            detail = e.response.text.strip() if e.response is not None else str(e)
+            console.print(
+                f"[bold red]Ollama API Error ({e.response.status_code if e.response is not None else 'unknown'}):[/bold red] "
+                f"{detail or 'The server returned an internal error.'}"
+            )
+            raise typer.Exit(code=1)
+        except requests.exceptions.Timeout:
+            console.print("[bold red]Error:[/bold red] Ollama timed out while generating the answer.")
             raise typer.Exit(code=1)
         except requests.exceptions.RequestException as e:
             console.print(f"[bold red]API Error:[/bold red] {e}")
