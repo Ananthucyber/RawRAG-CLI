@@ -5,3 +5,5 @@ DIMS = 384
 OLLAMA_URL = "http://localhost:11434/api/generate"
 
 DB_PATH = "rawrag_index.db"
+
+version = "v0.2.1 (development)"
