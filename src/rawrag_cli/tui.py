@@ -53,7 +53,7 @@ def build_hero_banner(version: str = version) -> Panel:
     """Full-width ANSI Shadow header with concise startup help."""
     header = print_header(text="RawRAG", font="ansi_shadow", target=None)
     details = Text.from_markup(
-        f"[#c9d1d9]RawRAG {version} · Local AI[/]\n"
+        f"[#c9d1d9]RawRAG {version} · Local RAG Agent[/]\n"
         "[bold #c9d1d9]/index[/] index · "
         "[bold #c9d1d9]/model <name>[/] switch model · ask a question"
     )

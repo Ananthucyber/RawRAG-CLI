@@ -23,7 +23,7 @@ def print_header(
     font: str = "ansi_shadow",
     target: Console | None = console,
 ) -> Text:
-    header = Text(pyfiglet.figlet_format(text, font=font), style="bold #0045b5")
+    header = Text(pyfiglet.figlet_format(text, font=font), style="bold #30b6db")
     if target is not None:
         target.print(header)
     return header
