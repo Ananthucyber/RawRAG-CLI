@@ -177,11 +177,15 @@ class RawRAGApp(App):
         )
         self.query_one("#context-bar", Static).update(ctx)
 
-        footer = Text.from_markup(
-            "[#8b949e]Interactive · Local RAG · [bold #c9d1d9]/[/] commands · "
-            "[bold #c9d1d9]?[/] help · [bold #c9d1d9]tab[/] next tab[/]"
+        self.query_one("#bottom-bar", Static).update(
+            Text.from_markup(
+                "[#8b949e]Interactive · Local RAG · [bold #c9d1d9]/[/] commands · "
+                "[bold #c9d1d9]?[/] help · [bold #c9d1d9]tab[/] next tab[/]"
+            )
         )
-        self.query_one("#bottom-bar", Static).update(footer)
+
+    def _update_index_progress(self, path: Path) -> None:
+        self.query_one("#bottom-bar", Static).update(Text(f"Indexing: {path}", style="#8b949e"))
 
     def _log_startup_checks(self) -> None:
         feed = self.query_one("#current-feed", RichLog)
@@ -280,10 +284,15 @@ class RawRAGApp(App):
     def run_indexing_worker(self) -> None:
         feed = self.query_one("#current-feed", RichLog)
         try:
-            file_count = index_directory(Path.cwd())
+            file_count = index_directory(
+                Path.cwd(),
+                on_file=lambda path: self.call_from_thread(self._update_index_progress, path),
+            )
         except (FileNotFoundError, OSError, RuntimeError, ValueError) as error:
+            self.call_from_thread(self._render_status_bars)
             self.call_from_thread(feed.write, f"  [bold red]Indexing failed: {error}[/]")
             return
+        self.call_from_thread(self._render_status_bars)
         self.call_from_thread(feed.write, f"  [#3fb950]└ Index updated: {file_count} files.[/]")
         self.call_from_thread(self._render_index_overview)
 

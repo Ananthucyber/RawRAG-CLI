@@ -11,8 +11,15 @@ from rawrag_cli.core import pipeline
 class PipelineTests(unittest.TestCase):
     def test_index_directory_indexes_python_files_through_shared_pipeline(self):
         with TemporaryDirectory() as directory:
-            Path(directory, "sample.py").write_text("print('hello')", encoding="utf-8")
+            sample_path = Path(directory, "sample.py")
+            sample_path.write_text("print('hello')", encoding="utf-8")
+            for ignored_dir in (".venv", "venv", "__pycache__"):
+                ignored_path = Path(directory, ignored_dir, "ignored.py")
+                ignored_path.parent.mkdir(parents=True)
+                ignored_path.write_text("print('ignored')", encoding="utf-8")
+
             vector_store = Mock()
+            on_file = Mock()
 
             with (
                 patch.object(pipeline.os.path, "exists", return_value=False),
@@ -22,9 +29,10 @@ class PipelineTests(unittest.TestCase):
                 patch.object(pipeline, "get_embedding", return_value=np.zeros(384)),
                 patch.object(pipeline, "insert_chunk", return_value=7),
             ):
-                file_count = pipeline.index_directory(directory)
+                file_count = pipeline.index_directory(directory, on_file=on_file)
 
         self.assertEqual(file_count, 1)
+        on_file.assert_called_once_with(sample_path)
         initialize_database.assert_called_once_with()
         vector_store.add_vector.assert_called_once()
         vector_store.save_index.assert_called_once_with()

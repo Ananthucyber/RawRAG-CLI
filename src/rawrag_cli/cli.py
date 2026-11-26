@@ -34,8 +34,14 @@ def index(directory: str = typer.Argument(".", help="Directory to index")):
     console.print(f"Indexing files in directory: [cyan]{directory}[/cyan]")
 
     try:
-        with console.status("[bold yellow]Chunking and embedding files (this might take a minute)...[/bold yellow]", spinner="bouncingBar"):
-            file_count = index_directory(directory)
+        with console.status(
+            "[bold yellow]Chunking and embedding files (this might take a minute)...[/bold yellow]",
+            spinner="bouncingBar",
+        ) as status:
+            file_count = index_directory(
+                directory,
+                on_file=lambda path: status.update(Text(f"Indexing {path}...", style="bold yellow")),
+            )
     except FileNotFoundError as error:
         console.print(f"[bold red]{error}[/bold red]")
         raise typer.Exit(code=1) from error
