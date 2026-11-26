@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import os
 import sqlite3
+from collections.abc import Callable
 from pathlib import Path
 
 import requests
@@ -25,9 +26,19 @@ class NoRelevantChunksError(RuntimeError):
     """Raised when a query does not retrieve any indexed chunks."""
 
 
-def index_directory(directory: str | Path = ".") -> int:
+_IGNORED_DIRECTORY_NAMES = {".venv", "venv", "__pycache__"}
+
+
+def index_directory(
+    directory: str | Path = ".",
+    on_file: Callable[[Path], None] | None = None,
+) -> int:
     """Rebuild the local index from Python files and return the file count."""
-    filepaths = list(Path(directory).rglob("*.py"))
+    filepaths: list[Path] = []
+    for root, dirs, filenames in os.walk(directory):
+        dirs[:] = [name for name in dirs if name.lower() not in _IGNORED_DIRECTORY_NAMES]
+        filepaths.extend(Path(root) / name for name in filenames if name.endswith(".py"))
+
     if not filepaths:
         raise FileNotFoundError("No .py files found in the specified directory.")
 
@@ -39,6 +50,8 @@ def index_directory(directory: str | Path = ".") -> int:
     vector_store = VectorMath()
 
     for path in filepaths:
+        if on_file is not None:
+            on_file(path)
         text = path.read_text(encoding="utf-8")
         chunks = chunk_text(text, chunk_size, chunk_overlap)
         for chunk in chunks:

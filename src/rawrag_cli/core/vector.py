@@ -44,7 +44,7 @@ class VectorMath:
         self.vector_ids[str(row_index)] = vector_id
         return self.matrix.shape
 
-    def search(self, query_vector, top_k=3):
+    def search(self, query_vector, top_k=6):
         if self.matrix is None:
             return []
         self.validate_index()

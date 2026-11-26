@@ -3,7 +3,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 from rich.text import Text
-from textual.widgets import ContentSwitcher, Input, RichLog
+from textual.widgets import ContentSwitcher, Input, RichLog, Static
 from typer.testing import CliRunner
 
 from rawrag_cli.cli import app
@@ -38,7 +38,11 @@ class TuiQueryWiringTests(unittest.IsolatedAsyncioTestCase):
             self.assertEqual(prompt.value, "raw")
 
     async def test_index_command_calls_shared_pipeline(self):
-        with patch("rawrag_cli.tui.index_directory", return_value=2) as index_directory:
+        def index_with_progress(_directory, on_file):
+            on_file(Path("src/example.py"))
+            return 2
+
+        with patch("rawrag_cli.tui.index_directory", side_effect=index_with_progress) as index_directory:
             app = RawRAGApp()
             async with app.run_test() as pilot:
                 prompt = app.query_one("#prompt-input", Input)
@@ -46,7 +50,17 @@ class TuiQueryWiringTests(unittest.IsolatedAsyncioTestCase):
                 await pilot.press("enter")
                 await pilot.pause(0.2)
 
-            index_directory.assert_called_once_with(Path.cwd())
+            call_args = index_directory.call_args
+            self.assertEqual(call_args.args, (Path.cwd(),))
+            self.assertTrue(callable(call_args.kwargs["on_file"]))
+
+    async def test_index_progress_displays_current_file(self):
+        app = RawRAGApp()
+        async with app.run_test():
+            app._update_index_progress(Path("src/example.py"))
+            status = app.query_one("#bottom-bar", Static)
+
+            self.assertEqual(str(status.render()), "Indexing: src\\example.py")
 
     async def test_tab_key_switches_visible_tab_content(self):
         app = RawRAGApp()
