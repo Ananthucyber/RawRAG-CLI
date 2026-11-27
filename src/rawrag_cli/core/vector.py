@@ -39,7 +39,7 @@ class VectorMath:
 
     def search(self, query_vector, top_k=3):
         """
-        search for the most similar vector
+        search for the most similar vector.
 
         Args:
             query_vector (np.ndarray): The vector used to search the index.
