@@ -51,7 +51,7 @@ uv pip install -e .
 
 ## Usage
 
-RawRAG-CLI exposes two primary commands. Run them directly in your terminal from any codebase directory.
+Running `rawrag` without a subcommand opens the interactive TUI. You can also launch it directly with `rawrag-tui`. Both launchers use the same local indexing and query pipeline as the CLI commands below.
 
 ### 1. Indexing a Codebase
 Scan the current directory, generate text chunks, compute 384-dimensional embeddings, and save the vector index locally.
@@ -64,6 +64,15 @@ Ask a natural language question about the indexed codebase. The CLI will retriev
 ```bash
 rawrag query "Where is the authentication logic handled?"
 ```
+
+### Interactive TUI
+Launch the terminal interface from the codebase directory:
+```bash
+rawrag
+# or
+rawrag-tui
+```
+Use `/index` to build or refresh the index, `/model <name>` to switch the Ollama model, and enter a question to query the indexed code.
 
 ---
 
